@@ -23,6 +23,7 @@ return [
         'icon-class' => 'icon-leads',
     ], [
         'key' => 'leads.index',
+        'permission' => 'leads',
         'name' => 'admin::app.layouts.leads',
         'route' => 'admin.leads.index',
         'sort' => 1,
