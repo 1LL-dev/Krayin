@@ -8,6 +8,8 @@ use Webkul\Activity\Models\Activity;
 use Webkul\Activity\Repositories\ActivityRepository;
 use Webkul\Contact\Repositories\PersonRepository;
 use Webkul\Lead\Repositories\LeadRepository;
+use Webkul\User\Repositories\RoleRepository;
+use Webkul\User\Repositories\UserRepository;
 
 uses(DatabaseTransactions::class);
 
@@ -26,6 +28,26 @@ function createCallingQueueLead($admin, ?int $personId = null)
     ]);
 }
 
+function createCallingQueueUser(array $permissions)
+{
+    $identifier = (string) Str::uuid();
+    $role = app(RoleRepository::class)->create([
+        'name' => 'Calling Queue Role '.$identifier,
+        'description' => 'Calling Queue feature test role',
+        'permission_type' => 'custom',
+        'permissions' => $permissions,
+    ]);
+
+    return app(UserRepository::class)->create([
+        'name' => 'Calling Queue User '.$identifier,
+        'email' => $identifier.'@example.test',
+        'password' => bcrypt('password'),
+        'role_id' => $role->id,
+        'status' => 1,
+        'view_permission' => 'individual',
+    ]);
+}
+
 it('can see the calling queue page when authenticated', function () {
     $admin = getDefaultAdmin();
 
@@ -33,6 +55,31 @@ it('can see the calling queue page when authenticated', function () {
         ->get(route('admin.leads.calling_queue.index'))
         ->assertOK()
         ->assertSee('Calling Queue');
+});
+
+it('allows a user with Calling Queue permission to open the queue', function () {
+    $user = createCallingQueueUser(['leads', 'leads.calling_queue']);
+
+    test()->actingAs($user)
+        ->get(route('admin.leads.calling_queue.index'))
+        ->assertOK()
+        ->assertSee('Calling Queue');
+});
+
+it('denies a user without Calling Queue permission from opening the queue', function () {
+    $user = createCallingQueueUser(['dashboard']);
+
+    test()->actingAs($user)
+        ->get(route('admin.leads.calling_queue.index'))
+        ->assertUnauthorized();
+});
+
+it('denies a user without Calling Queue permission from posting a call', function () {
+    $user = createCallingQueueUser(['dashboard']);
+
+    test()->actingAs($user)
+        ->postJson(route('admin.leads.calling_queue.calls.store'), [])
+        ->assertUnauthorized();
 });
 
 it('can log an outbound call via calling queue API', function () {
@@ -68,6 +115,11 @@ it('can log an outbound call via calling queue API', function () {
         ->and($completedCall->schedule_from)->toBeNull()
         ->and($completedCall->schedule_to)->toBeNull()
         ->and($lead->activities()->where('activities.title', 'Follow-up call: '.$lead->title)->exists())->toBeFalse();
+
+    test()->assertDatabaseHas('lead_activities', [
+        'activity_id' => $completedCall->id,
+        'lead_id' => $lead->id,
+    ]);
 });
 
 it('creates a separate planned call when a follow-up date is supplied', function () {
@@ -97,7 +149,10 @@ it('creates a separate planned call when a follow-up date is supplied', function
             'call_duration' => 90,
             'follow_up_at' => $followUpAt,
         ])
-        ->assertOK();
+        ->assertOK()
+        ->assertJsonPath('activity.title', 'Outbound call: '.$lead->title)
+        ->assertJsonPath('activity.type', 'call')
+        ->assertJsonPath('activity.follow_up_at', $followUpAt);
 
     $completedCall = Activity::findOrFail($response->json('activity.id'));
     $plannedCall = $lead->activities()
@@ -124,6 +179,12 @@ it('creates a separate planned call when a follow-up date is supplied', function
         ->and($plannedCall->user_id)->toBe($admin->id);
 
     test()->assertDatabaseHas('lead_activities', [
+        'activity_id' => $completedCall->id,
+        'lead_id' => $lead->id,
+    ])->assertDatabaseHas('person_activities', [
+        'activity_id' => $completedCall->id,
+        'person_id' => $person->id,
+    ])->assertDatabaseHas('lead_activities', [
         'activity_id' => $plannedCall->id,
         'lead_id' => $lead->id,
     ])->assertDatabaseHas('person_activities', [
@@ -172,4 +233,23 @@ it('does not duplicate an identical planned follow-up call', function () {
 
     expect($plannedCalls)->toHaveCount(1)
         ->and($lead->activities()->where('activities.type', 'meeting')->exists())->toBeFalse();
+});
+
+it('returns validation errors for an invalid call payload', function () {
+    $admin = getDefaultAdmin();
+
+    test()->actingAs($admin)
+        ->postJson(route('admin.leads.calling_queue.calls.store'), [
+            'lead_id' => 'invalid',
+            'call_outcome' => 'invalid',
+            'call_duration' => -1,
+            'follow_up_at' => 'invalid',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'lead_id',
+            'call_outcome',
+            'call_duration',
+            'follow_up_at',
+        ]);
 });

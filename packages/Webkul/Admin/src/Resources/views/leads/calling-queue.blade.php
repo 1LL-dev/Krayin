@@ -377,6 +377,7 @@
                     <button
                         type="button"
                         @click="saveCall(false)"
+                        :disabled="isSaving"
                         class="secondary-button flex-1"
                     >
                         Save
@@ -385,6 +386,7 @@
                     <button
                         type="button"
                         @click="saveCall(true)"
+                        :disabled="isSaving"
                         class="primary-button flex-[2]"
                     >
                         Save & Next
@@ -397,8 +399,6 @@
         </script>
 
         <script type="module">
-            console.log('[v-calling-queue] module script executing');
-
             app.component('v-calling-queue', {
                 template: '#v-calling-queue-template',
 
@@ -427,6 +427,7 @@
                         ],
                         selectedLead: null,
                         isCalling: false,
+                        isSaving: false,
                         timer: '00:00',
                         timerSeconds: 0,
                         timerInterval: null,
@@ -450,13 +451,7 @@
                     };
                 },
 
-                created() {
-                    console.log('[v-calling-queue] created');
-                },
-
                 mounted() {
-                    console.log('[v-calling-queue] mounted');
-
                     if (this.filteredLeads.length) {
                         this.selectLead(this.filteredLeads[0]);
                     }
@@ -613,7 +608,7 @@
                     },
 
                     saveCall(goNext) {
-                        if (! this.selectedLead) {
+                        if (this.isSaving || ! this.selectedLead) {
                             return;
                         }
 
@@ -625,6 +620,8 @@
 
                             return;
                         }
+
+                        this.isSaving = true;
 
                         this.$axios.post(this.storeCallUrl, {
                             lead_id: this.selectedLead.id,
@@ -650,12 +647,12 @@
                             if (goNext) {
                                 this.nextLead();
                             }
+                        }).finally(() => {
+                            this.isSaving = false;
                         });
                     },
                 },
             });
-
-            console.log('[v-calling-queue] app.component registered');
         </script>
     @endPushOnce
 </x-admin::layouts>
