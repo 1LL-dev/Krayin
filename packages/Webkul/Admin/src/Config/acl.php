@@ -14,7 +14,10 @@ return [
     ],[
         'key' => 'leads.calling_queue',
         'name' => 'Calling Queue',
-        'route' => 'admin.leads.calling_queue.index',
+        'route' => [
+            'admin.leads.calling_queue.index',
+            'admin.leads.calling_queue.calls.store',
+        ],
         'sort' => 5,
     ], [
         'key' => 'leads.create',
