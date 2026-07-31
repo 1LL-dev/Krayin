@@ -4,6 +4,7 @@ namespace Webkul\Admin\Http\Controllers\Lead;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\View\View;
 use Webkul\Activity\Repositories\ActivityRepository;
@@ -54,26 +55,74 @@ class CallingQueueController extends Controller
             abort(403);
         }
 
-        Event::dispatch('activity.create.before');
+        $userId = auth()->guard('user')->id();
 
-        $activity = $this->activityRepository->create([
-            'title' => 'Outbound call: '.$lead->title,
-            'type' => 'call',
-            'comment' => $data['comment'] ?? null,
-            'call_outcome' => $data['call_outcome'],
-            'call_duration' => $data['call_duration'] ?? 0,
-            'follow_up_at' => $data['follow_up_at'] ?? null,
-            'is_done' => true,
-            'user_id' => auth()->guard('user')->id(),
-        ]);
+        $activity = DB::transaction(function () use ($data, $lead, $userId) {
+            $lead = Lead::query()->lockForUpdate()->findOrFail($lead->id);
 
-        $activity->leads()->syncWithoutDetaching([$lead->id]);
+            Event::dispatch('activity.create.before');
 
-        if ($lead->person_id) {
-            $activity->persons()->syncWithoutDetaching([$lead->person_id]);
-        }
+            $activity = $this->activityRepository->create([
+                'title' => 'Outbound call: '.$lead->title,
+                'type' => 'call',
+                'comment' => $data['comment'] ?? null,
+                'call_outcome' => $data['call_outcome'],
+                'call_duration' => $data['call_duration'] ?? 0,
+                'follow_up_at' => $data['follow_up_at'] ?? null,
+                'is_done' => true,
+                'user_id' => $userId,
+            ]);
 
-        Event::dispatch('activity.create.after', $activity);
+            $activity->leads()->syncWithoutDetaching([$lead->id]);
+
+            if ($lead->person_id) {
+                $activity->persons()->syncWithoutDetaching([$lead->person_id]);
+            }
+
+            Event::dispatch('activity.create.after', $activity);
+
+            if (! empty($data['follow_up_at'])) {
+                $scheduleFrom = Carbon::parse($data['follow_up_at'], config('app.timezone'))->startOfMinute();
+                $title = 'Follow-up call: '.$lead->title;
+
+                $followUpActivity = $lead->activities()
+                    ->where('activities.title', $title)
+                    ->where('activities.type', 'call')
+                    ->where('activities.is_done', false)
+                    ->where('activities.user_id', $userId)
+                    ->where('activities.schedule_from', $scheduleFrom->toDateTimeString())
+                    ->first();
+
+                $followUpWasCreated = false;
+
+                if (! $followUpActivity) {
+                    Event::dispatch('activity.create.before');
+
+                    $followUpActivity = $this->activityRepository->create([
+                        'title' => $title,
+                        'type' => 'call',
+                        'schedule_from' => $scheduleFrom,
+                        'schedule_to' => $scheduleFrom->copy()->addMinutes(30),
+                        'is_done' => false,
+                        'user_id' => $userId,
+                    ]);
+
+                    $followUpWasCreated = true;
+                }
+
+                $followUpActivity->leads()->syncWithoutDetaching([$lead->id]);
+
+                if ($lead->person_id) {
+                    $followUpActivity->persons()->syncWithoutDetaching([$lead->person_id]);
+                }
+
+                if ($followUpWasCreated) {
+                    Event::dispatch('activity.create.after', $followUpActivity);
+                }
+            }
+
+            return $activity;
+        });
 
         return response()->json([
             'message' => trans('admin::app.calling-queue.call-saved'),
