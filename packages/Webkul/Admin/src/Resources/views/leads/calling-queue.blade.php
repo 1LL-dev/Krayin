@@ -7,8 +7,8 @@
 
     @pushOnce('scripts')
         <script type="text/x-template" id="v-calling-queue-template">
-<div class="space-y-4">
-    <div class="scroll-reactive-sticky sticky top-[60px] z-[1000] flex items-center justify-between rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+<div class="space-y-4 pb-4">
+    <div class="scroll-reactive-sticky sticky top-[60px] z-[1000] flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
         <div class="flex flex-col gap-2">
             <x-admin::breadcrumbs name="leads" />
 
@@ -17,36 +17,39 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                @{{ statistics.total_assigned }} assigned
-            </span>
-            <span class="rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                @{{ statistics.remaining_today }} remaining
-            </span>
-            <span class="rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                @{{ statistics.completed_today }} completed
-            </span>
+        <div class="flex flex-wrap items-center divide-x divide-gray-200 rounded-md border border-gray-200 bg-gray-50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-950">
+            <div class="px-3 py-1.5 text-center">
+                <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">Assigned</p>
+                <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-white">@{{ statistics.total_assigned }}</p>
+            </div>
+            <div class="px-3 py-1.5 text-center">
+                <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">Remaining</p>
+                <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-white">@{{ statistics.remaining_today }}</p>
+            </div>
+            <div class="px-3 py-1.5 text-center">
+                <p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">Completed</p>
+                <p class="mt-0.5 text-sm font-semibold text-gray-800 dark:text-white">@{{ statistics.completed_today }}</p>
+            </div>
         </div>
     </div>
 
-    <div class="grid gap-4 xl:grid-cols-[minmax(240px,25%)_minmax(0,1fr)_minmax(280px,25%)]">
-        <aside class="self-start overflow-hidden rounded-lg border border-gray-300 bg-white dark:border-gray-800 dark:bg-gray-900">
-            <div class="border-b border-gray-300 px-3 py-2.5 dark:border-gray-800">
+    <div class="grid items-start gap-4 xl:grid-cols-[minmax(250px,0.78fr)_minmax(0,1.7fr)_minmax(290px,0.88fr)]">
+        <aside class="overflow-hidden rounded-lg border border-gray-300 bg-white xl:sticky xl:top-[132px] dark:border-gray-800 dark:bg-gray-900">
+            <div class="border-b border-gray-300 px-4 py-3 dark:border-gray-800">
                 <div class="flex items-center justify-between gap-2">
                     <div>
                         <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
                             Queue
                         </p>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                            @{{ filteredLeads.length }} leads
+                            @{{ filteredLeads.length }} in view
                         </p>
                     </div>
 
                     <button
                         type="button"
                         @click="nextLead"
-                        class="primary-button"
+                        class="secondary-button px-2.5 py-1.5 text-xs"
                     >
                         Next lead
                     </button>
@@ -61,7 +64,7 @@
                     />
                 </div>
 
-                <div class="mt-2 flex flex-wrap gap-1.5">
+                <div class="mt-3 flex flex-wrap gap-1.5">
                     <button
                         v-for="filter in filters"
                         :key="filter.value"
@@ -71,7 +74,7 @@
                         :class="
                             activeFilter === filter.value
                             ? 'bg-gray-900 text-white dark:bg-gray-700'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
                         "
                     >
                         @{{ filter.label }}
@@ -79,20 +82,20 @@
                 </div>
             </div>
 
-            <div class="max-h-[calc(100vh-260px)] overflow-y-auto">
+            <div class="grid max-h-[calc(100vh-320px)] gap-2 overflow-y-auto p-2">
                 <button
                     v-for="lead in filteredLeads"
                     :key="lead.id"
                     type="button"
                     @click="selectLead(lead)"
-                    class="flex w-full items-start gap-2 border-b border-gray-200 px-3 py-2.5 text-left transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50"
+                    class="relative flex w-full items-start gap-3 rounded-md border border-gray-200 px-3 py-3 text-left transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-800/50"
                     :class="
                         selectedLead && selectedLead.id === lead.id
-                        ? 'bg-gray-50 dark:bg-gray-800/50'
+                        ? 'border-gray-900 bg-gray-50 shadow-[inset_3px_0_0_0_#111827] dark:border-gray-600 dark:bg-gray-800/50 dark:shadow-[inset_3px_0_0_0_#9ca3af]'
                         : ''
                     "
                 >
-                    <div class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[10px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                         @{{ (lead.contact && lead.contact.name) ? (lead.contact.name).charAt(0).toUpperCase() : '?' }}
                     </div>
 
@@ -134,11 +137,11 @@
             </div>
         </aside>
 
-        <main class="flex flex-col gap-3">
-            <section v-if="selectedLead" class="rounded-lg border border-gray-300 bg-white dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-300 px-4 py-3 dark:border-gray-800">
-                    <div class="flex items-start gap-3">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-base font-semibold text-white dark:bg-gray-700">
+        <main class="min-w-0 rounded-lg border border-gray-300 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <section v-if="selectedLead">
+                <div class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-300 px-5 py-5 dark:border-gray-800">
+                    <div class="flex items-start gap-4">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-900 text-lg font-semibold text-white dark:bg-gray-700">
                             @{{ (selectedLead.contact && selectedLead.contact.name) ? (selectedLead.contact.name).charAt(0).toUpperCase() : '?' }}
                         </div>
 
@@ -149,7 +152,7 @@
                                 </span>
                             </div>
 
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
                                 @{{ (selectedLead.contact && selectedLead.contact.name) || selectedLead.title }}
                             </h2>
 
@@ -174,8 +177,8 @@
                     </a>
                 </div>
 
-                <div class="grid gap-0 border-b border-gray-300 dark:border-gray-800 md:grid-cols-[1.2fr_0.8fr]">
-                    <div class="border-b border-gray-300 px-4 py-3 dark:border-gray-800 md:border-b-0 md:border-r">
+                <div class="grid border-b border-gray-300 dark:border-gray-800 md:grid-cols-[1.2fr_0.8fr]">
+                    <div class="border-b border-gray-300 px-5 py-4 dark:border-gray-800 md:border-b-0 md:border-r">
                         <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
                             Buyer brief
                         </p>
@@ -189,7 +192,7 @@
                         </p>
                     </div>
 
-                    <div class="px-4 py-3">
+                    <div class="px-5 py-4">
                         <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
                             Budget & location
                         </p>
@@ -204,21 +207,21 @@
                     </div>
                 </div>
 
-                <div class="grid gap-3 p-4 md:grid-cols-[1.1fr_0.9fr]">
-                    <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
-                        <div class="mb-2 flex items-center justify-between gap-2">
+                <div class="divide-y divide-gray-200 dark:divide-gray-800">
+                    <div class="px-5 py-5">
+                        <div class="mb-3 flex items-center justify-between gap-2">
                             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Property matches</h3>
-                            <span class="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                                 @{{ selectedLead.properties.length }}
                             </span>
                         </div>
 
-                        <div v-if="selectedLead.properties.length" class="space-y-2">
+                        <div v-if="selectedLead.properties.length" class="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                             <a
                                 v-for="property in selectedLead.properties"
                                 :key="property.id"
                                 :href="propertyUrl(property.id)"
-                                class="flex items-center gap-2 rounded-md border border-gray-200 px-2.5 py-2 transition hover:bg-white dark:border-gray-800 dark:hover:bg-gray-800/70"
+                                class="flex items-center gap-3 px-3 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800/70"
                             >
                                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gray-900 text-white dark:bg-gray-700">
                                     <i class="icon-home text-sm"></i>
@@ -235,22 +238,22 @@
                             </a>
                         </div>
 
-                        <div v-else class="px-2 py-4 text-center">
+                        <div v-else class="border-y border-gray-200 py-6 text-center dark:border-gray-800">
                             <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">No matched properties</p>
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Review the buyer brief during the call and attach listings afterward.</p>
                         </div>
                     </div>
 
-                    <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
-                        <div class="mb-2 flex items-center justify-between gap-2">
+                    <div class="px-5 py-5">
+                        <div class="mb-3 flex items-center justify-between gap-2">
                             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Activity timeline</h3>
-                            <span class="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                                 @{{ selectedLead.activities.length }}
                             </span>
                         </div>
 
-                        <div class="space-y-2">
-                            <div v-for="activity in selectedLead.activities" :key="activity.id" class="rounded-md border border-gray-200 bg-white px-2.5 py-2 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                            <div v-for="activity in selectedLead.activities" :key="activity.id" class="px-3 py-3">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
                                         <p class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -270,7 +273,7 @@
                 </div>
             </section>
 
-            <section v-else class="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
+            <section v-else class="flex min-h-[420px] items-center justify-center p-8 text-center">
                 <div class="max-w-xs">
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
                         <i class="icon-phone text-2xl"></i>
@@ -281,8 +284,8 @@
             </section>
         </main>
 
-        <aside v-if="selectedLead" class="self-start rounded-lg border border-gray-300 bg-white dark:border-gray-800 dark:bg-gray-900">
-            <div class="border-b border-gray-300 px-3 py-3 dark:border-gray-800">
+        <aside v-if="selectedLead" class="overflow-hidden rounded-lg border border-gray-300 bg-white xl:sticky xl:top-[132px] dark:border-gray-800 dark:bg-gray-900">
+            <div class="border-b border-gray-300 px-4 py-3 dark:border-gray-800">
                 <div class="flex items-center justify-between gap-2">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Call workspace</h3>
                     <span
@@ -298,8 +301,8 @@
                 </div>
             </div>
 
-            <div class="space-y-3 p-3">
-                <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+            <div class="space-y-4 p-4">
+                <div class="border-b border-gray-200 pb-4 dark:border-gray-800">
                     <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Call script</p>
                     <p class="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white">
                         Review the buyer brief, confirm the intent, and guide the conversation toward the best-fit property.
@@ -309,7 +312,37 @@
                     </p>
                 </div>
 
-                <div class="rounded-md border border-gray-300 bg-white p-3 text-center dark:border-gray-800 dark:bg-gray-900">
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Next up</p>
+                        <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500">Queue shortcuts</span>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <button
+                            v-for="lead in filteredLeads.filter((lead) => !selectedLead || lead.id !== selectedLead.id).slice(0, 3)"
+                            :key="'next-up-' + lead.id"
+                            type="button"
+                            @click="selectLead(lead)"
+                            class="flex w-full items-center gap-2 rounded-md border border-gray-200 px-2.5 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-800/50"
+                        >
+                            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[10px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                @{{ (lead.contact && lead.contact.name) ? (lead.contact.name).charAt(0).toUpperCase() : '?' }}
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-xs font-semibold text-gray-800 dark:text-white">
+                                    @{{ (lead.contact && lead.contact.name) || lead.title }}
+                                </p>
+                                <p class="mt-0.5 truncate text-[10px] text-gray-500 dark:text-gray-400">
+                                    @{{ lead.stage || 'Queued lead' }}
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rounded-md bg-gray-50 p-4 text-center dark:bg-gray-950">
                     <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Call timer</p>
                     <p class="mt-2 font-mono text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
                         @{{ timer }}
@@ -334,7 +367,7 @@
                     </button>
                 </div>
 
-                <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                <div>
                     <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Outcome</p>
                     <div class="grid grid-cols-2 gap-1.5">
                         <template v-for="outcome in outcomes" :key="'outcome-' + outcome">
@@ -355,7 +388,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                <div>
                     <label class="block text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Notes</label>
                     <textarea
                         v-model="notes"
@@ -364,7 +397,7 @@
                     ></textarea>
                 </div>
 
-                <div class="rounded-md border border-gray-300 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                <div>
                     <label class="block text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Follow-up</label>
                     <input
                         v-model="followUpAt"
@@ -373,7 +406,7 @@
                     />
                 </div>
 
-                <div class="flex gap-2">
+                <div class="flex gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
                     <button
                         type="button"
                         @click="saveCall(false)"
