@@ -1,32 +1,187 @@
 {!! view_render_event('admin.dashboard.index.over_all.before') !!}
 
+<!-- Over Details Vue Component -->
 <v-dashboard-over-all-stats>
+    <!-- Shimmer -->
     <x-admin::shimmer.dashboard.index.over-all />
 </v-dashboard-over-all-stats>
 
 {!! view_render_event('admin.dashboard.index.over_all.after') !!}
 
 @pushOnce('scripts')
-    <script type="text/x-template" id="v-dashboard-over-all-stats-template">
+    <script
+        type="text/x-template"
+        id="v-dashboard-over-all-stats-template"
+    >
+        <!-- Shimmer -->
         <template v-if="isLoading">
             <x-admin::shimmer.dashboard.index.over-all />
         </template>
 
+        <!-- Total Sales Section -->
         <template v-else>
-            <div class="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                <div
-                    class="rounded-lg border border-gray-300 bg-white px-4 py-4 dark:border-gray-800 dark:bg-gray-900"
-                    v-for="metric in metrics"
-                    :key="metric.label"
-                >
-                    <div class="flex items-start justify-between gap-3">
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-300">@{{ metric.label }}</p>
-                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            @{{ metric.context }}
-                        </span>
-                    </div>
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-3 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+                <!-- Average Revenue Card -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.average-lead-value')
+                    </p>
 
-                    <p class="mt-3 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">@{{ metric.value }}</p>
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.average_lead_value.formatted_total }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.average_lead_value.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.average_lead_value.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.average_lead_value.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Revenue Card -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.total-leads')
+                    </p>
+
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.total_leads.current }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.total_leads.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.total_leads.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.total_leads.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Lead Per Day -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.average-leads-per-day')
+                    </p>
+
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.average_leads_per_day.current.toFixed(2) }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.average_leads_per_day.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.average_leads_per_day.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.average_leads_per_day.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Quotes -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.total-quotations')
+                    </p>
+
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.total_quotations.current }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.total_quotations.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.total_quotations.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.total_quotations.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Persons -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.total-persons')
+                    </p>
+
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.total_persons.current }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.total_persons.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.total_persons.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.total_persons.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Organizations -->
+                <div class="flex flex-col gap-2 rounded-lg border border-gray-300 bg-white px-4 py-5 dark:border-gray-800 dark:bg-gray-900">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        @lang('admin::app.dashboard.index.over-all.total-organizations')
+                    </p>
+
+                    <div class="flex gap-2">
+                        <p class="text-xl font-bold dark:text-gray-300">
+                            @{{ report.statistics.total_organizations.current }}
+                        </p>
+
+                        <div class="flex items-center gap-0.5">
+                            <span
+                                class="text-base !font-semibold text-green-500"
+                                :class="[report.statistics.total_organizations.progress < 0 ? 'icon-stats-down text-red-500 dark:!text-red-500' : 'icon-stats-up text-green-500 dark:!text-green-500']"
+                            ></span>
+
+                            <p
+                                class="text-xs font-semibold text-green-500"
+                                :class="[report.statistics.total_organizations.progress < 0 ?  'text-red-500' : 'text-green-500']"
+                            >
+                                @{{ Math.abs(report.statistics.total_organizations.progress.toFixed(2)) }}%
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </template>
@@ -38,39 +193,17 @@
 
             data() {
                 return {
-                    report: {
-                        statistics: {
-                            workflow_snapshot: {
-                                new_leads_today: 0,
-                                follow_ups_due: 0,
-                                viewings_today: 0,
-                                calls_pending: 0,
-                                active_buyers: 0,
-                                active_sellers: 0,
-                            },
-                        },
-                    },
+                    report: [],
+
                     isLoading: true,
+
+                    chart: undefined,
                 }
-            },
-
-            computed: {
-                metrics() {
-                    const snapshot = this.report.statistics.workflow_snapshot;
-
-                    return [
-                        {label: 'New leads', value: snapshot.new_leads_today, context: 'Today'},
-                        {label: 'Follow-ups due', value: snapshot.follow_ups_due, context: 'Next 24h'},
-                        {label: 'Viewings', value: snapshot.viewings_today, context: 'Today'},
-                        {label: 'Pending calls', value: snapshot.calls_pending, context: 'Open'},
-                        {label: 'Active buyers', value: snapshot.active_buyers, context: 'Pipeline'},
-                        {label: 'Total contacts', value: snapshot.active_sellers, context: 'Database'},
-                    ];
-                },
             },
 
             mounted() {
                 this.getStats({});
+
                 this.$emitter.on('reporting-filter-updated', this.getStats);
             },
 
@@ -78,15 +211,21 @@
                 getStats(filters) {
                     this.isLoading = true;
 
+                    var filters = Object.assign({}, filters);
+
+                    filters.type = 'over-all';
+
                     this.$axios.get("{{ route('admin.dashboard.stats') }}", {
-                        params: Object.assign({}, filters, {type: 'over-all'}),
-                    }).then(response => {
-                        this.report = response.data;
-                    }).finally(() => {
-                        this.isLoading = false;
-                    });
+                            params: filters
+                        })
+                        .then(response => {
+                            this.report = response.data;
+
+                            this.isLoading = false;
+                        })
+                        .catch(error => {});
                 },
-            },
+            }
         });
     </script>
 @endPushOnce

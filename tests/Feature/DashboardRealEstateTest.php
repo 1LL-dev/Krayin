@@ -1,63 +1,36 @@
 <?php
 
-it('returns workflow snapshot and property value metrics for the real-estate dashboard', function () {
+it('returns the native Krayin revenue and summary reports', function () {
     $admin = getDefaultAdmin();
 
-    $response = $this->actingAs($admin)
-        ->getJson(route('admin.dashboard.stats', ['type' => 'real-estate-operations']));
-
-    $response->assertOk()
+    $this->actingAs($admin)
+        ->getJson(route('admin.dashboard.stats', ['type' => 'revenue-stats']))
+        ->assertOk()
         ->assertJsonStructure([
             'statistics' => [
-                'property_overview' => [
-                    'total',
-                    'total_property_value',
-                    'formatted_total_property_value',
-                    'active_listings',
-                    'statuses',
-                    'status_breakdown',
-                ],
-                'workflow_snapshot' => [
-                    'new_leads_today',
-                    'follow_ups_due',
-                    'viewings_today',
-                    'calls_pending',
-                    'active_buyers',
-                    'active_sellers',
-                ],
+                'total_won_revenue' => ['previous', 'current', 'formatted_total', 'progress'],
+                'total_lost_revenue' => ['previous', 'current', 'formatted_total', 'progress'],
             ],
+            'date_range',
+        ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.dashboard.stats', ['type' => 'over-all']))
+        ->assertOk()
+        ->assertJsonStructure([
+            'statistics' => [
+                'total_leads' => ['previous', 'current', 'progress'],
+                'average_lead_value' => ['previous', 'current', 'formatted_total', 'progress'],
+                'average_leads_per_day' => ['previous', 'current', 'progress'],
+                'total_quotations' => ['previous', 'current', 'progress'],
+                'total_persons' => ['previous', 'current', 'progress'],
+                'total_organizations' => ['previous', 'current', 'progress'],
+            ],
+            'date_range',
         ]);
 });
 
-it('returns the report data required by the visible dashboard cards', function () {
-    $admin = getDefaultAdmin();
-
-    foreach (['revenue-stats', 'over-all'] as $type) {
-        $this->actingAs($admin)
-            ->getJson(route('admin.dashboard.stats', ['type' => $type]))
-            ->assertOk()
-            ->assertJsonStructure([
-                'statistics' => [
-                    'property_overview' => [
-                        'total',
-                        'total_property_value',
-                        'formatted_total_property_value',
-                        'active_listings',
-                    ],
-                    'workflow_snapshot' => [
-                        'new_leads_today',
-                        'follow_ups_due',
-                        'viewings_today',
-                        'calls_pending',
-                        'active_buyers',
-                        'active_sellers',
-                    ],
-                ],
-            ]);
-    }
-});
-
-it('returns the restored lead and property performance reports', function () {
+it('returns the dashboard chart and ranking reports', function () {
     $admin = getDefaultAdmin();
 
     $this->actingAs($admin)
@@ -71,7 +44,14 @@ it('returns the restored lead and property performance reports', function () {
             ],
         ]);
 
-    foreach (['open-leads-by-states', 'top-selling-products'] as $type) {
+    foreach ([
+        'open-leads-by-states',
+        'revenue-by-sources',
+        'revenue-by-types',
+        'top-selling-products',
+        'top-persons',
+        'top-agents',
+    ] as $type) {
         $response = $this->actingAs($admin)
             ->getJson(route('admin.dashboard.stats', ['type' => $type]))
             ->assertOk();
@@ -80,19 +60,20 @@ it('returns the restored lead and property performance reports', function () {
     }
 });
 
-it('keeps operational work queues off the reporting dashboard', function () {
+it('renders the native report dashboard with top agents and no work queues', function () {
     $admin = getDefaultAdmin();
 
     $this->actingAs($admin)
         ->get(route('admin.dashboard.index'))
         ->assertOk()
-        ->assertSee('Total property value')
-        ->assertSee('New leads')
-        ->assertSee('Lead outcome trend')
-        ->assertSee('Pipeline distribution')
-        ->assertSee('Lead sources')
-        ->assertSee('Property mix')
-        ->assertSee('Top property performance')
+        ->assertSee('Won Revenue')
+        ->assertSee('Average Lead Value')
+        ->assertSee('Total Quotations')
+        ->assertSee('Open Leads By Stages')
+        ->assertSee('Revenue By Sources')
+        ->assertSee('Revenue By Types')
+        ->assertSee('Top Properties')
+        ->assertSee('Top Agents')
         ->assertDontSee('Priority outreach for the next warm follow-up.')
         ->assertDontSee("Today's Follow-ups")
         ->assertDontSee('Upcoming Viewings')
