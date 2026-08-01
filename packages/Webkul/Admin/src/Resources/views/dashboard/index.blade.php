@@ -13,6 +13,10 @@
             <p class="text-2xl font-semibold dark:text-white">
                 @lang('admin::app.dashboard.index.title')
             </p>
+
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Business performance, pipeline health, and property intelligence.
+            </p>
         </div>
 
         {!! view_render_event('admin.dashboard.index.header.left.after') !!}
@@ -36,44 +40,47 @@
     <!-- Body Component -->
     {!! view_render_event('admin.dashboard.index.content.before') !!}
 
-    <div class="mt-3.5 flex gap-4 max-xl:flex-wrap">
-        <!-- Left Section -->
+    <div class="mt-3.5 grid gap-5">
         {!! view_render_event('admin.dashboard.index.content.left.before') !!}
 
-        <div class="flex flex-1 flex-col gap-4 max-xl:flex-auto">
-            <!-- Revenue Stats -->
+        <section class="grid gap-4">
             @include('admin::dashboard.index.revenue')
 
-            <!-- Over All Stats -->
             @include('admin::dashboard.index.over-all')
+        </section>
 
-            <!-- Total Leads Stats -->
-            @include('admin::dashboard.index.total-leads')
-
-            <div class="flex gap-4 max-lg:flex-wrap">
-                <!-- Total Products -->
-                @include('admin::dashboard.index.top-selling-products')
-
-                <!-- Total Persons -->
-                @include('admin::dashboard.index.top-persons')
+        <section class="grid gap-3">
+            <div>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">Lead performance</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Volume and outcomes across the selected reporting period.</p>
             </div>
-        </div>
 
-        {!! view_render_event('admin.dashboard.index.content.left.after') !!}
+            @include('admin::dashboard.index.total-leads')
+        </section>
 
-        <!-- Right Section -->
-        {!! view_render_event('admin.dashboard.index.content.right.before') !!}
+        <section class="grid gap-3">
+            <div>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">Acquisition intelligence</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Where opportunities enter, how they progress, and what converts.</p>
+            </div>
 
-        <div class="flex w-[378px] max-w-full flex-col gap-4 max-sm:w-full">
-            <!-- Revenue by Types -->
-            @include('admin::dashboard.index.open-leads-by-states')
+            <div class="grid items-start gap-4 xl:grid-cols-3">
+                @include('admin::dashboard.index.open-leads-by-states')
 
-            <!-- Revenue by Sources -->
-            @include('admin::dashboard.index.revenue-by-sources')
+                @include('admin::dashboard.index.revenue-by-sources')
 
-            <!-- Revenue by Types -->
-            @include('admin::dashboard.index.revenue-by-types')
-        </div>
+                @include('admin::dashboard.index.revenue-by-types')
+            </div>
+        </section>
+
+        <section class="grid gap-3">
+            <div>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">Property performance</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Listings generating the strongest closed revenue.</p>
+            </div>
+
+            @include('admin::dashboard.index.top-selling-products')
+        </section>
 
         {!! view_render_event('admin.dashboard.index.content.left.after') !!}
     </div>
@@ -85,12 +92,6 @@
         <script
             type="module"
             src="{{ vite()->asset('js/chart.js') }}"
-        >
-        </script>
-
-        <script
-            type="module"
-            src="https://cdn.jsdelivr.net/npm/chartjs-chart-funnel@4.2.1/build/index.umd.min.js"
         >
         </script>
 

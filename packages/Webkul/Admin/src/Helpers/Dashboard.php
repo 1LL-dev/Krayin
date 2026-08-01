@@ -34,9 +34,11 @@ class Dashboard
      */
     public function getRevenueStats(): array
     {
+        $operations = $this->getRealEstateOperations();
+
         return [
-            'total_won_revenue' => $this->leadReporting->getTotalWonLeadValueProgress(),
-            'total_lost_revenue' => $this->leadReporting->getTotalLostLeadValueProgress(),
+            'property_overview' => $operations['property_overview'],
+            'workflow_snapshot' => $operations['workflow_snapshot'],
         ];
     }
 
@@ -45,13 +47,11 @@ class Dashboard
      */
     public function getOverAllStats(): array
     {
+        $operations = $this->getRealEstateOperations();
+
         return [
-            'total_leads' => $this->leadReporting->getTotalLeadsProgress(),
-            'average_lead_value' => $this->leadReporting->getAverageLeadValueProgress(),
-            'average_leads_per_day' => $this->leadReporting->getAverageLeadsPerDayProgress(),
-            'total_quotations' => $this->quoteReporting->getTotalQuotesProgress(),
-            'total_persons' => $this->personReporting->getTotalPersonsProgress(),
-            'total_organizations' => $this->organizationReporting->getTotalOrganizationsProgress(),
+            'property_overview' => $operations['property_overview'],
+            'workflow_snapshot' => $operations['workflow_snapshot'],
         ];
     }
 
@@ -163,10 +163,13 @@ class Dashboard
             ->where('lead_pipeline_stages.code', 'won')
             ->count();
 
+        $totalPropertyValue = DB::table('products')->sum('price') ?? 0;
+
         return [
             'property_overview' => [
                 'total' => DB::table('products')->count(),
-                'total_property_value' => DB::table('products')->sum('price') ?? 0,
+                'total_property_value' => $totalPropertyValue,
+                'formatted_total_property_value' => core()->formatBasePrice($totalPropertyValue),
                 'active_listings' => DB::table('products')->where('price', '>', 0)->count(),
                 'statuses' => $propertyStatuses,
                 'status_breakdown' => $propertyStatuses->map(fn ($total, $key) => ['key' => $key, 'value' => (int) $total])->values(),
@@ -249,37 +252,6 @@ class Dashboard
                     ->get(),
             ],
         ];
-    }
-
-    /**
-     * Return the next leads that need a call for the dashboard queue widget.
-     */
-    public function getCallingQueue(): array
-    {
-        return DB::table('leads')
-            ->leftJoin('persons', 'persons.id', '=', 'leads.person_id')
-            ->leftJoin('lead_pipeline_stages', 'lead_pipeline_stages.id', '=', 'leads.lead_pipeline_stage_id')
-            ->select(
-                'leads.id',
-                DB::raw("COALESCE(persons.name, leads.title) as name"),
-                DB::raw("CASE WHEN persons.contact_numbers IS NOT NULL AND JSON_LENGTH(persons.contact_numbers) > 0 THEN JSON_UNQUOTE(JSON_EXTRACT(persons.contact_numbers, '$[0]')) ELSE '—' END as phone"),
-                DB::raw("CASE WHEN leads.lead_source_id IS NOT NULL THEN 'Inbound' ELSE 'Website' END as source"),
-                DB::raw("COALESCE(lead_pipeline_stages.name, 'New') as status"),
-                DB::raw("CASE WHEN lead_pipeline_stages.code = 'new' THEN 'Intro call' WHEN lead_pipeline_stages.code = 'follow_up' THEN 'Follow-up call' ELSE 'Confirm next step' END as next_action")
-            )
-            ->orderByDesc('leads.created_at')
-            ->limit(5)
-            ->get()
-            ->map(fn ($lead) => [
-                'id' => $lead->id,
-                'name' => $lead->name ?: 'Unassigned lead',
-                'phone' => $lead->phone ?: '—',
-                'source' => $lead->source ?: 'Website',
-                'status' => $lead->status ?: 'New',
-                'next_action' => $lead->next_action ?: 'Confirm next step',
-            ])
-            ->values()
-            ->all();
     }
 
     /**

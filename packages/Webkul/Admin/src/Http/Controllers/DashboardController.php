@@ -23,7 +23,6 @@ class DashboardController extends Controller
         'top-persons' => 'getTopPersons',
         'open-leads-by-states' => 'getOpenLeadsByStates',
         'real-estate-operations' => 'getRealEstateOperations',
-        'calling-queue' => 'getCallingQueue',
         'my-real-estate-work' => 'getMyRealEstateWork',
     ];
 
