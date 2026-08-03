@@ -17,16 +17,23 @@
             <div class="flex items-center gap-x-2.5">
                 {!! view_render_event('admin.products.index.create_button.before') !!}
 
+                @if (bouncer()->hasPermission('settings.automation.data_transfer.imports.create'))
+                    <a
+                        href="{{ route('admin.settings.data_transfer.imports.create', ['type' => 'products']) }}"
+                        class="secondary-button"
+                    >
+                        @lang('admin::app.products.index.import-btn')
+                    </a>
+                @endif
+
                 <!-- Create button for Product -->
                 @if (bouncer()->hasPermission('products.create'))
-                    <div class="flex items-center gap-x-2.5">
-                        <a
-                            href="{{ route('admin.products.create') }}"
-                            class="primary-button"
-                        >
-                            @lang('admin::app.products.index.create-btn')
-                        </a>
-                    </div>
+                    <a
+                        href="{{ route('admin.products.create') }}"
+                        class="primary-button"
+                    >
+                        @lang('admin::app.products.index.create-btn')
+                    </a>
                 @endif
 
                 {!! view_render_event('admin.products.index.create_button.after') !!}

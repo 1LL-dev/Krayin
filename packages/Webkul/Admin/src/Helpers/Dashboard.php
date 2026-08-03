@@ -131,7 +131,7 @@ class Dashboard
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('closed_revenue')
             ->orderByDesc('deals_won')
-            ->limit(5)
+            ->limit(3)
             ->get()
             ->map(fn ($agent) => [
                 'id' => $agent->id,

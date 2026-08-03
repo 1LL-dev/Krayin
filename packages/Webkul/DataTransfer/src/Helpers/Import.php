@@ -6,7 +6,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xls;
@@ -143,7 +142,9 @@ class Import
      */
     public function getSource(): AbstractSource
     {
-        if (Str::contains($this->import->file_path, '.csv')) {
+        $extension = strtolower(pathinfo($this->import->file_path, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['csv', 'txt'])) {
             $source = new CSVSource(
                 $this->import->file_path,
                 $this->import->field_separator,

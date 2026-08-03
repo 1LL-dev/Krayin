@@ -1,5 +1,10 @@
 <?php
 
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
+
+uses(DatabaseTransactions::class);
+
 it('returns the native Krayin revenue and summary reports', function () {
     $admin = getDefaultAdmin();
 
@@ -57,6 +62,10 @@ it('returns the dashboard chart and ranking reports', function () {
             ->assertOk();
 
         expect($response->json('statistics'))->toBeArray();
+
+        if ($type === 'top-agents') {
+            expect(count($response->json('statistics')))->toBeLessThanOrEqual(3);
+        }
     }
 });
 
@@ -78,4 +87,63 @@ it('renders the native report dashboard with top agents and no work queues', fun
         ->assertDontSee("Today's Follow-ups")
         ->assertDontSee('Upcoming Viewings')
         ->assertDontSee('A polished teleprompter for every outreach call.');
+});
+
+it('returns only the three highest-performing agents', function () {
+    $admin = getDefaultAdmin();
+    $wonStage = DB::table('lead_pipeline_stages')->where('code', 'won')->first();
+    $personId = DB::table('persons')->value('id');
+    $sourceId = DB::table('lead_sources')->value('id');
+    $typeId = DB::table('lead_types')->value('id');
+
+    expect($wonStage)->not->toBeNull()
+        ->and($personId)->not->toBeNull()
+        ->and($sourceId)->not->toBeNull()
+        ->and($typeId)->not->toBeNull();
+
+    DB::table('leads')->update(['closed_at' => now()->subYear()]);
+
+    foreach ([
+        'Import Agent One' => 60000000,
+        'Import Agent Two' => 70000000,
+        'Import Agent Three' => 80000000,
+        'Import Agent Four' => 90000000,
+    ] as $name => $revenue) {
+        $userId = DB::table('users')->insertGetId([
+            'name' => $name,
+            'email' => str()->uuid().'@example.test',
+            'password' => null,
+            'status' => 1,
+            'role_id' => $admin->role_id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('leads')->insert([
+            'title' => $name.' closed deal',
+            'lead_value' => $revenue,
+            'status' => 1,
+            'closed_at' => now()->subDay(),
+            'user_id' => $userId,
+            'person_id' => $personId,
+            'lead_source_id' => $sourceId,
+            'lead_type_id' => $typeId,
+            'lead_pipeline_id' => $wonStage->lead_pipeline_id,
+            'lead_pipeline_stage_id' => $wonStage->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    $statistics = $this->actingAs($admin)
+        ->getJson(route('admin.dashboard.stats', ['type' => 'top-agents']))
+        ->assertOk()
+        ->json('statistics');
+
+    expect($statistics)->toHaveCount(3)
+        ->and(collect($statistics)->pluck('name')->all())->toBe([
+            'Import Agent Four',
+            'Import Agent Three',
+            'Import Agent Two',
+        ]);
 });

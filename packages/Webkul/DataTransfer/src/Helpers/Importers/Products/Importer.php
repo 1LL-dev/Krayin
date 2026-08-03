@@ -3,12 +3,15 @@
 namespace Webkul\DataTransfer\Helpers\Importers\Products;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Webkul\Attribute\Repositories\AttributeOptionRepository;
 use Webkul\Attribute\Repositories\AttributeRepository;
 use Webkul\Attribute\Repositories\AttributeValueRepository;
+use Webkul\Contact\Repositories\PersonRepository;
 use Webkul\DataTransfer\Contracts\ImportBatch as ImportBatchContract;
 use Webkul\DataTransfer\Helpers\Import;
 use Webkul\DataTransfer\Helpers\Importers\AbstractImporter;
@@ -54,7 +57,16 @@ class Importer extends AbstractImporter
         'description',
         'quantity',
         'price',
+        'owner_id',
+        'owner_name',
+        'owner_phone',
+        'assigned_agent_id',
     ];
+
+    /**
+     * Contacts loaded while resolving property owners.
+     */
+    protected Collection $owners;
 
     /**
      * Create a new helper instance.
@@ -68,6 +80,7 @@ class Importer extends AbstractImporter
         protected ProductRepository $productRepository,
         protected ProductInventoryRepository $productInventoryRepository,
         protected AttributeValueRepository $attributeValueRepository,
+        protected PersonRepository $personRepository,
         protected SKUStorage $skuStorage
     ) {
         parent::__construct(
@@ -84,7 +97,11 @@ class Importer extends AbstractImporter
      */
     protected function initAttributes(): void
     {
-        $this->attributes = $this->attributeRepository->all();
+        $this->attributes = $this->attributeRepository
+            ->scopeQuery(fn ($query) => $query
+                ->where('entity_type', 'products')
+                ->with('options'))
+            ->get();
 
         foreach ($this->attributes as $attribute) {
             $this->validColumnNames[] = $attribute->code;
@@ -160,10 +177,34 @@ class Importer extends AbstractImporter
             return true;
         }
 
+        $rowData = $this->normalizeAttributeValues($rowData);
+
         /**
          * Validate product attributes
          */
-        $validator = Validator::make($rowData, $this->getValidationRules('products', $rowData));
+        $rules = $this->getValidationRules('products', $rowData);
+
+        $rules['owner_id'] = ['nullable', 'integer', 'exists:persons,id'];
+        $rules['owner_name'] = ['nullable', 'string', 'required_without:owner_id'];
+        $rules['owner_phone'] = ['nullable', 'string'];
+        $rules['assigned_agent_id'] = ['nullable', 'integer', 'exists:users,id'];
+
+        foreach ($this->attributes as $attribute) {
+            if (! array_key_exists($attribute->code, $rowData)) {
+                continue;
+            }
+
+            if (in_array($attribute->type, ['select', 'radio'])) {
+                $rules[$attribute->code][] = Rule::exists('attribute_options', 'id')
+                    ->where('attribute_id', $attribute->id);
+            }
+
+            if ($attribute->type === 'address') {
+                $rules[$attribute->code][] = 'array';
+            }
+        }
+
+        $validator = Validator::make($rowData, $rules);
 
         if ($validator->fails()) {
             foreach ($validator->errors()->getMessages() as $attributeCode => $message) {
@@ -269,6 +310,16 @@ class Importer extends AbstractImporter
      */
     public function prepareProducts(array $rowData, array &$products): void
     {
+        if (empty($rowData['owner_id']) && filled($rowData['owner_name'] ?? null)) {
+            $rowData['owner_id'] = $this->resolveOwnerId(
+                $rowData['owner_name'],
+                $rowData['owner_phone'] ?? null,
+                $rowData['assigned_agent_id'] ?? null,
+            );
+        }
+
+        unset($rowData['owner_name'], $rowData['owner_phone']);
+
         if ($this->isSKUExist($rowData['sku'])) {
             $products['update'][$rowData['sku']] = $rowData;
         } else {
@@ -288,16 +339,25 @@ class Importer extends AbstractImporter
         if (! empty($products['update'])) {
             $this->updatedItemsCount += count($products['update']);
 
-            $this->productRepository->upsert(
-                $products['update'],
-                $this->masterAttributeCode
-            );
+            foreach ($products['update'] as $sku => $productData) {
+                $product = $this->skuStorage->get($sku);
+
+                $this->productRepository->update([
+                    ...$productData,
+                    'entity_type' => 'products',
+                ], $product['id']);
+            }
         }
 
         if (! empty($products['insert'])) {
             $this->createdItemsCount += count($products['insert']);
 
-            $this->productRepository->insert($products['insert']);
+            foreach ($products['insert'] as $productData) {
+                $this->productRepository->create([
+                    ...$productData,
+                    'entity_type' => 'products',
+                ]);
+            }
         }
     }
 
@@ -364,6 +424,119 @@ class Importer extends AbstractImporter
      */
     protected function prepareRowForDb(array $rowData): array
     {
-        return parent::prepareRowForDb($rowData);
+        return $this->normalizeAttributeValues(
+            parent::prepareRowForDb($rowData)
+        );
+    }
+
+    /**
+     * Convert human-readable property values into the values stored by Krayin.
+     */
+    protected function normalizeAttributeValues(array $rowData): array
+    {
+        foreach ($this->attributes as $attribute) {
+            if (! array_key_exists($attribute->code, $rowData)) {
+                continue;
+            }
+
+            $value = $rowData[$attribute->code];
+
+            if ($attribute->type === 'address' && is_string($value) && trim($value) !== '') {
+                $decodedValue = json_decode($value, true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $rowData[$attribute->code] = $decodedValue;
+                }
+            }
+
+            if (
+                in_array($attribute->type, ['select', 'radio'])
+                && filled($value)
+                && ! is_numeric($value)
+            ) {
+                $option = $attribute->options->first(
+                    fn ($option) => strcasecmp($option->name, trim($value)) === 0
+                );
+
+                if ($option) {
+                    $rowData[$attribute->code] = $option->id;
+                }
+            }
+        }
+
+        return $rowData;
+    }
+
+    /**
+     * Find or create the CRM contact who owns an imported property.
+     */
+    protected function resolveOwnerId(string $name, mixed $phone, mixed $assignedAgentId): int
+    {
+        $name = trim($name);
+        $phone = trim((string) $phone);
+        $normalizedPhone = $this->normalizePhone($phone);
+        $cacheKey = mb_strtolower($name).'|'.$normalizedPhone;
+
+        if (! isset($this->owners)) {
+            $this->owners = $this->personRepository->all([
+                'id',
+                'name',
+                'emails',
+                'contact_numbers',
+                'user_id',
+            ]);
+        }
+
+        $owner = $this->owners->first(function ($person) use ($name, $normalizedPhone) {
+            if ($normalizedPhone !== '') {
+                $hasMatchingPhone = collect($person->contact_numbers ?? [])
+                    ->contains(fn ($number) => $this->normalizePhone($number['value'] ?? null) === $normalizedPhone);
+
+                if ($hasMatchingPhone) {
+                    return true;
+                }
+            }
+
+            return strcasecmp(trim($person->name), $name) === 0;
+        });
+
+        if ($owner) {
+            return $owner->id;
+        }
+
+        $contactNumbers = $phone !== ''
+            ? [['label' => 'work', 'value' => $phone]]
+            : [];
+
+        $personData = [
+            'name' => $name,
+            'emails' => [],
+            'contact_numbers' => $contactNumbers,
+            'user_id' => filled($assignedAgentId) ? $assignedAgentId : null,
+            'unique_id' => 'property-import|'.hash('sha256', $cacheKey),
+        ];
+
+        $owner = $this->personRepository
+            ->getModel()
+            ->newQuery()
+            ->create($personData);
+
+        $this->attributeValueRepository->save([
+            ...$personData,
+            'entity_type' => 'persons',
+            'entity_id' => $owner->id,
+        ]);
+
+        $this->owners->push($owner);
+
+        return $owner->id;
+    }
+
+    /**
+     * Normalize a phone number for contact matching.
+     */
+    protected function normalizePhone(mixed $phone): string
+    {
+        return preg_replace('/\D+/', '', (string) $phone);
     }
 }

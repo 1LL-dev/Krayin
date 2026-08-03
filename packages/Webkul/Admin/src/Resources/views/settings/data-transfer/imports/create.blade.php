@@ -1,7 +1,19 @@
+@php
+    $requestedImportType = request()->query('type', '');
+
+    $selectedImportType = array_key_exists($requestedImportType, config('importers'))
+        ? $requestedImportType
+        : 'persons';
+
+    $pageTitle = $selectedImportType === 'products'
+        ? trans('admin::app.settings.data-transfer.imports.create.import-properties')
+        : trans('admin::app.settings.data-transfer.imports.create.title');
+@endphp
+
 <x-admin::layouts>
     <!-- Page Title -->
     <x-slot:title>
-        @lang('admin::app.settings.data-transfer.imports.create.title')
+        {{ $pageTitle }}
     </x-slot>
 
     {!! view_render_event('admin.settings.data_transfer.imports.create.before') !!}
@@ -23,7 +35,7 @@
                 {!! view_render_event('admin.settings.data_transfers.create.breadcrumbs.after') !!}
 
                 <div class="text-xl font-bold dark:text-white">
-                    @lang('admin::app.settings.data-transfer.imports.create.title')
+                    {{ $pageTitle }}
                 </div>
             </div>
 
@@ -69,7 +81,7 @@
                             type="select"
                             name="type"
                             id="import-type"
-                            :value="old('type') ?? 'persons'"
+                            :value="old('type') ?? $selectedImportType"
                             ref="importType"
                             rules="required"
                             :label="trans('admin::app.settings.data-transfer.imports.create.type')"
@@ -101,9 +113,20 @@
                         <x-admin::form.control-group.control
                             type="file"
                             name="file"
+                            accept=".csv,.xls,.xlsx,.txt"
                             rules="required"
                             :label="trans('admin::app.settings.data-transfer.imports.create.file')"
                         />
+
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            @lang('admin::app.settings.data-transfer.imports.create.file-help')
+                        </p>
+
+                        @if ($selectedImportType === 'products')
+                            <p class="mt-2 rounded border border-gray-200 bg-gray-50 p-2.5 text-xs leading-5 text-gray-600 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
+                                @lang('admin::app.settings.data-transfer.imports.create.property-file-help')
+                            </p>
+                        @endif
 
                         <x-admin::form.control-group.error control-name="file" />
                     </x-admin::form.control-group>
@@ -163,7 +186,7 @@
                                 :label="trans('admin::app.settings.data-transfer.imports.create.validation-strategy')"
                             >
                                 <option value="stop-on-errors">@lang('admin::app.settings.data-transfer.imports.create.stop-on-errors')</option>
-                                <option value="skip-erros">@lang('admin::app.settings.data-transfer.imports.create.skip-errors')</option>
+                                <option value="skip-errors">@lang('admin::app.settings.data-transfer.imports.create.skip-errors')</option>
                             </x-admin::form.control-group.control>
 
                             <x-admin::form.control-group.error control-name="validation_strategy" />

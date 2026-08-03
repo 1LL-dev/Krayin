@@ -53,8 +53,8 @@ class ImportController extends Controller
 
         $this->validate(request(), [
             'type' => 'required|in:'.implode(',', $importers),
-            'action' => 'required:in:append,delete',
-            'validation_strategy' => 'required:in:stop-on-errors,skip-errors',
+            'action' => 'required|in:append,delete',
+            'validation_strategy' => 'required|in:stop-on-errors,skip-errors',
             'allowed_errors' => 'required|integer|min:0',
             'field_separator' => 'required',
             'file' => 'required|mimes:csv,xls,xlsx,txt',
@@ -66,7 +66,6 @@ class ImportController extends Controller
             'type',
             'action',
             'process_in_queue',
-            'validation_strategy',
             'validation_strategy',
             'allowed_errors',
             'field_separator',
@@ -119,8 +118,8 @@ class ImportController extends Controller
 
         $this->validate(request(), [
             'type' => 'required|in:'.implode(',', $importers),
-            'action' => 'required:in:append,delete',
-            'validation_strategy' => 'required:in:stop-on-errors,skip-errors',
+            'action' => 'required|in:append,delete',
+            'validation_strategy' => 'required|in:stop-on-errors,skip-errors',
             'allowed_errors' => 'required|integer|min:0',
             'field_separator' => 'required',
             'file' => 'mimes:csv,xls,xlsx,txt',
@@ -133,7 +132,6 @@ class ImportController extends Controller
                 'type',
                 'action',
                 'process_in_queue',
-                'validation_strategy',
                 'validation_strategy',
                 'allowed_errors',
                 'field_separator',
