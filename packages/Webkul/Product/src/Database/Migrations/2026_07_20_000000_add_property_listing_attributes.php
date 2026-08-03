@@ -20,10 +20,10 @@ return new class extends Migration
             ]);
 
         foreach ([
-            'name'        => 'Property Title',
-            'sku'         => 'Listing ID',
+            'name' => 'Property Title',
+            'sku' => 'Listing ID',
             'description' => 'Property Description',
-            'price'       => 'Listing Price',
+            'price' => 'Listing Price',
         ] as $code => $name) {
             DB::table('attributes')
                 ->where('entity_type', 'products')
@@ -166,10 +166,10 @@ return new class extends Migration
             ->delete();
 
         foreach ([
-            'name'        => 'Name',
-            'sku'         => 'SKU',
+            'name' => 'Name',
+            'sku' => 'SKU',
             'description' => 'Description',
-            'price'       => 'Price',
+            'price' => 'Price',
         ] as $code => $name) {
             DB::table('attributes')
                 ->where('entity_type', 'products')

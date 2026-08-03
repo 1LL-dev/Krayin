@@ -11,7 +11,7 @@ return [
         'name' => 'admin::app.acl.leads',
         'route' => 'admin.leads.index',
         'sort' => 2,
-    ],[
+    ], [
         'key' => 'leads.calling_queue',
         'name' => 'Calling Queue',
         'route' => [

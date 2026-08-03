@@ -29,8 +29,7 @@ class ProductController extends Controller
         protected ProductRepository $productRepository,
         protected LeadRepository $leadRepository,
         protected LeadProductRepository $leadProductRepository,
-    )
-    {
+    ) {
         request()->request->add(['entity_type' => 'products']);
     }
 
